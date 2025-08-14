@@ -1,0 +1,198 @@
+-- ================================
+-- CREACIÓN DE BASE Y USUARIO
+-- ================================
+DROP SCHEMA IF EXISTS carross;
+DROP USER IF EXISTS 'usuario_prueba'@'%';
+
+CREATE SCHEMA carross;
+CREATE USER 'usuario_prueba'@'%' IDENTIFIED BY 'Usuario_Clave.';
+GRANT ALL PRIVILEGES ON carross.* TO 'usuario_prueba'@'%';
+FLUSH PRIVILEGES;
+USE carross;
+
+-- ================================
+-- TABLA: CATEGORÍA (Género)
+-- ================================
+CREATE TABLE categoria (
+  id_categoria INT NOT NULL AUTO_INCREMENT,
+  nombre       VARCHAR(50) NOT NULL,
+  descripcion  VARCHAR(255),
+  activo       TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (id_categoria)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Géneros de películas
+INSERT INTO categoria (nombre, descripcion) VALUES
+  ('Acción',      'Películas de acción y aventura'),
+  ('Comedia',     'Comedias y romance'),
+  ('Terror',      'Suspenso y horror'),
+  ('Documental',  'Documentales y biográficos'),
+  ('Animación',   'Animación familiar');
+
+-- ================================
+-- TABLA: PELÍCULA
+-- ================================
+CREATE TABLE pelicula (
+  id_pelicula   INT NOT NULL AUTO_INCREMENT,
+  id_categoria  INT NOT NULL,
+  titulo        VARCHAR(150) NOT NULL,
+  precio        DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  activo        TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (id_pelicula),
+  CONSTRAINT fk_pelicula_categoria
+    FOREIGN KEY (id_categoria) REFERENCES categoria(id_categoria)
+      ON UPDATE CASCADE
+      ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Catálogo de películas (20 ítems)
+INSERT INTO pelicula (id_categoria, titulo, precio) VALUES
+  (1,'Misión Imposible: Sentencia Mortal',7.50),
+  (1,'Indiana Jones y el Dial del Destino',6.80),
+  (1,'Agente X',6.50),
+  (1,'Guardianes del Multiverso',8.00),
+
+  (2,'Amor en París',5.50),
+  (2,'Verano Infinito',5.20),
+  (2,'Papá en Apuros',5.40),
+  (2,'Bajo la Luz de la Luna',6.00),
+
+  (3,'La Casa del Silencio',6.50),
+  (3,'Noche de Cuchillas',6.20),
+  (3,'El Bosque Maldito',6.80),
+  (3,'Habitación 33',6.70),
+
+  (4,'Océanos Profundos',4.50),
+  (4,'Planeta en Llamas',4.20),
+  (4,'La Historia de Roma',4.80),
+  (4,'Mundos Ancestrales',4.60),
+
+  (5,'Aventuras en el Bosque',5.00),
+  (5,'Canciones del Corazón',5.20),
+  (5,'Los Amigos Imaginarios',5.10),
+  (5,'El Viaje de Lila',5.30);
+
+-- ================================
+-- TABLA: USUARIO
+-- ================================
+CREATE TABLE usuario (
+  id_usuario  INT AUTO_INCREMENT PRIMARY KEY,
+  username    VARCHAR(20) NOT NULL,
+  password    VARCHAR(512) NOT NULL,
+  nombre      VARCHAR(20) NOT NULL,
+  apellidos   VARCHAR(30) NOT NULL,
+  correo      VARCHAR(75),
+  telefono    VARCHAR(15),
+  activo      TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ================================
+-- TABLA: ROL
+-- ================================
+CREATE TABLE rol (
+  id_rol     INT AUTO_INCREMENT PRIMARY KEY,
+  nombre     VARCHAR(20),
+  id_usuario INT,
+  CONSTRAINT fk_rol_usuario FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Usuarios de ejemplo
+INSERT INTO usuario (username, password, nombre, apellidos, correo, telefono, activo) VALUES 
+  ('jose',   '$2a$10$P1.w58XvnaYQUQgZUCk4aO/RTRl8EValluCqB3S2VMLTbRt.tlre.', 'Jose',   'Castro Mora',    'jose@gmail.com',   '4556-8978', 1),
+  ('felipe', '$2a$10$GkEj.ZzmQa/aEfDmtLIh3udIH5fMphx/35d0EYeqZL5uzgCJ0lQRi', 'Felipe', 'Contreras Mora', 'felipe@gmail.com', '5456-8789', 1),
+  ('ian',    '$2a$10$koGR7eS22Pv5KdaVJKDcge04ZB53iMiw76.UjHPY.XyVYlYqXnPbO', 'Ian',    'Mena Loria',     'ian@gmail.com',    '7898-8936', 1);
+
+INSERT INTO rol (nombre, id_usuario) VALUES
+ ('ROLE_ADMIN',1), ('ROLE_USER',1),
+ ('ROLE_USER',2),
+ ('ROLE_USER',3);
+
+-- ================================
+-- TABLA: CONTACTO
+-- ================================
+CREATE TABLE contacto (
+  id_contacto INT AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL,
+  email       VARCHAR(100) NOT NULL,
+  message     TEXT         NOT NULL,
+  fecha_envio DATETIME     DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =================================================
+-- FACTURACIÓN (en lugar de FUNCION/RESERVA)
+-- =================================================
+CREATE TABLE factura (
+  id_factura INT AUTO_INCREMENT PRIMARY KEY,
+  id_usuario INT NOT NULL,
+  fecha      DATE,
+  total      DECIMAL(14,2),
+  estado     INT,
+  CONSTRAINT fk_factura_usuario FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE venta (
+  id_venta   INT AUTO_INCREMENT PRIMARY KEY,
+  id_factura INT NOT NULL,
+  id_pelicula   INT NOT NULL,
+  precio     DECIMAL(12,2),
+  cantidad   INT,
+  CONSTRAINT fk_ventas_factura  FOREIGN KEY (id_factura)  REFERENCES factura(id_factura),
+  CONSTRAINT fk_ventas_pelicula FOREIGN KEY (id_pelicula) REFERENCES pelicula(id_pelicula)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Datos de ejemplo de facturas/ventas
+INSERT INTO factura (id_usuario, fecha, total, estado) VALUES
+ (1, CURDATE(), 15.00, 1),
+ (2, CURDATE(), 12.40, 1);
+
+INSERT INTO venta (id_factura, id_pelicula, precio, cantidad) VALUES
+ (1, 1, 7.50, 2),
+ (2, 6, 6.20, 2);
+
+-- ================================
+-- REQUEST MATCHERS (SEGURIDAD)
+-- ================================
+CREATE TABLE request_matcher (
+  id_request_matcher INT AUTO_INCREMENT PRIMARY KEY,
+  pattern            VARCHAR(255) NOT NULL,
+  role_name          VARCHAR(50)  NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO request_matcher (pattern, role_name) VALUES
+  ('/pelicula/nuevo',         'ADMIN'),
+  ('/pelicula/guardar',       'ADMIN'),
+  ('/pelicula/modificar/**',  'ADMIN'),
+  ('/pelicula/eliminar/**',   'ADMIN'),
+  ('/categoria/nuevo',        'ADMIN'),
+  ('/categoria/guardar',      'ADMIN'),
+  ('/categoria/modificar/**', 'ADMIN'),
+  ('/categoria/eliminar/**',  'ADMIN'),
+  -- endpoints de facturación
+  ('/factura/**',             'USER'),
+  ('/venta/**',               'USER');
+
+CREATE TABLE request_matcher_all (
+  id_request_matcher INT AUTO_INCREMENT PRIMARY KEY,
+  pattern            VARCHAR(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO request_matcher_all (pattern) VALUES
+  ('/'),
+  ('/index'),
+  ('/errores/**'),
+  ('/js/**'),
+  ('/webjars/**'),
+  ('/login'),
+  ('/pelicula/listado'),
+  ('/factura/listado');
+
+-- ================================
+-- CONSULTAS DE VERIFICACIÓN
+-- ================================
+SELECT COUNT(*) AS total_peliculas FROM pelicula;
+SELECT COUNT(*) AS total_facturas  FROM factura;
+SELECT COUNT(*) AS total_ventas    FROM venta;
+
+SELECT * FROM pelicula LIMIT 5;
+SELECT * FROM factura  LIMIT 5;
+SELECT * FROM venta    LIMIT 5;
